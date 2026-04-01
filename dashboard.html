@@ -131,7 +131,6 @@ select {
 <!-- TOP BAR -->
 <div class="topbar">
   <input type="date" id="dateFilter">
-  <button onclick="refreshData()">🔄 Refresh</button>
 </div>
 
 <!-- ================= SUMMARY TAB ================= -->
@@ -175,12 +174,6 @@ function loadData() {
   });
 }
 
-loadData();
-
-/* REFRESH BUTTON */
-function refreshData() {
-  loadData();
-}
 
 /* TAB SWITCH */
 function showTab(tabId, el) {
