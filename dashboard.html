@@ -234,12 +234,10 @@ function renderSummaryTab() {
     // Booking count
     bookingMap[cab] = (bookingMap[cab] || 0) + 1;
 
-    // Picked (ETA available = assume picked)
-    if (d["Estimated Arrival Time"] && d["Estimated Arrival Time"] !== "N/A") {
-      pickedMap[cab] = (pickedMap[cab] || 0) + 1;
-    }
-  });
-
+    // Picked (Status = Pickup)
+if (d.Status && d.Status.toLowerCase().includes("pick")) {
+  pickedMap[cab] = (pickedMap[cab] || 0) + 1;
+}
   summary.innerHTML = `
     <div class="summary-title">📊 Booking Details</div>
     ${renderSummaryCards(bookingMap)}
