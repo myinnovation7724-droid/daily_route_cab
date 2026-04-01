@@ -37,26 +37,46 @@ header {
 /* Layout */
 .container { padding:10px; }
 
+/* Top Filter Row */
+.topbar {
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.topbar input {
+  flex:0.6;
+  padding:8px;
+  border-radius:8px;
+}
+
+.topbar button {
+  flex:0.4;
+  padding:8px;
+  border:none;
+  background:#1976d2;
+  color:white;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+/* Filters */
 .filters {
   display:flex;
   gap:8px;
   margin-bottom:10px;
 }
 
-select, input {
+select {
   flex:1;
   padding:10px;
   border-radius:8px;
 }
 
-/* Summary UI */
-.summary-section {
-  margin-bottom:15px;
-}
-
+/* Summary */
 .summary-title {
   font-weight:bold;
-  margin:10px 0;
+  margin:12px 0 6px;
 }
 
 .summary-card {
@@ -66,7 +86,6 @@ select, input {
   border-radius:10px;
   display:flex;
   justify-content:space-between;
-  align-items:center;
 }
 
 .count {
@@ -87,7 +106,6 @@ select, input {
 }
 
 .name { font-weight:bold; }
-
 .row { font-size:14px; }
 
 .eta {
@@ -110,9 +128,10 @@ select, input {
 
 <div class="container">
 
-<!-- DATE FILTER (COMMON) -->
-<div class="filters">
+<!-- TOP BAR -->
+<div class="topbar">
   <input type="date" id="dateFilter">
+  <button onclick="refreshData()">🔄 Refresh</button>
 </div>
 
 <!-- ================= SUMMARY TAB ================= -->
@@ -140,19 +159,28 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx_vjKoYYDsXLRoG0uuFrYI
 
 let data = [];
 
-fetch(API_URL)
-.then(res => res.json())
-.then(json => {
-  data = json;
-  populateFilters();
+/* LOAD DATA */
+function loadData() {
+  fetch(API_URL)
+  .then(res => res.json())
+  .then(json => {
+    data = json;
+    populateFilters();
 
-  // Default today date
-  const today = new Date().toISOString().split("T")[0];
-  dateFilter.value = today;
+    const today = new Date().toISOString().split("T")[0];
+    if (!dateFilter.value) dateFilter.value = today;
 
-  renderSummaryTab();
-  renderDetails();
-});
+    renderSummaryTab();
+    renderDetails();
+  });
+}
+
+loadData();
+
+/* REFRESH BUTTON */
+function refreshData() {
+  loadData();
+}
 
 /* TAB SWITCH */
 function showTab(tabId, el) {
@@ -167,6 +195,10 @@ function showTab(tabId, el) {
 
 /* FILTERS */
 function populateFilters() {
+  shiftFilter.innerHTML = '<option value="">All Shifts</option>';
+  cabFilter.innerHTML = '<option value="">All Cab Types</option>';
+  pickupFilter.innerHTML = '<option value="">All Pickups</option>';
+
   const shifts = [...new Set(data.map(d => d.Shift))];
   const cabs = [...new Set(data.map(d => d["Cab Type"]))];
   const pickups = [...new Set(data.map(d => d["Pickup Location"]))];
@@ -185,7 +217,7 @@ dateFilter.onchange = () => {
   renderDetails();
 };
 
-/* ================= SUMMARY ================= */
+/* SUMMARY */
 function renderSummaryTab() {
 
   const selectedDate = dateFilter.value;
@@ -195,46 +227,40 @@ function renderSummaryTab() {
     return !selectedDate || rowDate === selectedDate;
   });
 
-  const map = {
-    Morning: {},
-    Evening: {}
-  };
+  const bookingMap = {};
+  const pickedMap = {};
 
   filtered.forEach(d => {
-    const shift = d.Shift;
-    const time = d["Estimated Arrival Time"];
+    const cab = d["Cab Type"];
 
-    if (!map[shift]) return;
+    // Booking count
+    bookingMap[cab] = (bookingMap[cab] || 0) + 1;
 
-    map[shift][time] = (map[shift][time] || 0) + 1;
+    // Picked (ETA available = assume picked)
+    if (d["Estimated Arrival Time"] && d["Estimated Arrival Time"] !== "N/A") {
+      pickedMap[cab] = (pickedMap[cab] || 0) + 1;
+    }
   });
 
   summary.innerHTML = `
-    ${renderSection("🌅 Morning", map.Morning)}
-    ${renderSection("🌙 Evening", map.Evening)}
+    <div class="summary-title">📊 Booking Details</div>
+    ${renderSummaryCards(bookingMap)}
+
+    <div class="summary-title">✅ Picked Persons</div>
+    ${renderSummaryCards(pickedMap)}
   `;
 }
 
-function renderSection(title, obj) {
-
-  const keys = Object.keys(obj).sort((a,b)=> parseTime(a) - parseTime(b));
-
-  if (keys.length === 0) return "";
-
-  return `
-    <div class="summary-section">
-      <div class="summary-title">${title}</div>
-      ${keys.map(k => `
-        <div class="summary-card">
-          <span>${k}</span>
-          <span class="count">${obj[k]} Persons</span>
-        </div>
-      `).join('')}
+function renderSummaryCards(map) {
+  return Object.keys(map).map(k => `
+    <div class="summary-card">
+      <span>${k}</span>
+      <span class="count">${map[k]} Persons</span>
     </div>
-  `;
+  `).join('');
 }
 
-/* ================= DETAILS ================= */
+/* DETAILS */
 function renderDetails() {
 
   const shift = shiftFilter.value;
@@ -267,10 +293,10 @@ function renderList(data) {
   list.innerHTML = data.map(d => `
     <div class="card">
       <div class="name">${d["Your Name"]}</div>
-      <div class="row">📞 Contact: ${d["Contact Number"]}</div>
+      <div class="row">Contact: ${d["Contact Number"]}</div>
       <div class="row">Shift: ${d.Shift}</div>
       <div class="row">Cab: ${d["Cab Type"]}</div>
-      <div class="row">Pickup: ${d["Pickup Location"]}</div>
+      <div class="eta">Pickup: ${d["Pickup Location"]}</div>
       <div class="row">Drop: ${d["Drop Location"]}</div>
       <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
     </div>
