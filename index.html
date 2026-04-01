@@ -12,7 +12,7 @@ body {
   padding: 20px;
 }
 
-.container {
+.container {		
   max-width: 420px;
   margin: auto;
   background: #fff;
@@ -92,7 +92,7 @@ button {
 
     <!-- PICKUP -->
     <label>Select pickup location</label>
-    <input list="pickupList" id="pickup" name="entry.770044040" placeholder="" required onchange="setETA()">
+    <input list="pickupList" id="pickup" name="entry.770044040" required onchange="setETA(); filterDrop()">
     <datalist id="pickupList"></datalist>
 
     <!-- DROP -->
@@ -115,7 +115,8 @@ button {
 const API_URL = "https://script.google.com/macros/s/AKfycby4VVFAHangOe4n8vtayTguUJNdQomlHacpQH9XTsOZ05CxRr6PJscE1_oJt0s80cld/exec";
 
 let data = [];
-let locations = new Set();
+let upRoute = [];
+let downRoute = [];
 
 // Load data
 fetch(API_URL)
@@ -128,19 +129,19 @@ fetch(API_URL)
   loadLocations();
 });
 
-// Load locations
-function loadLocations() {
+// Load Pickup based on shift
+function loadPickup() {
+  const shift = document.getElementById("shift").value;
   const pick = document.getElementById("pickupList");
-  const drop = document.getElementById("dropList");
 
-  locations.forEach(loc => {
-    let o1 = document.createElement("option");
-    o1.value = loc;
-    pick.appendChild(o1);
+  pick.innerHTML = "";
 
-    let o2 = document.createElement("option");
-    o2.value = loc;
-    drop.appendChild(o2);
+  let route = shift === "Morning" ? upRoute : downRoute;
+
+  route.forEach(loc => {
+    let opt = document.createElement("option");
+    opt.value = loc;
+    pick.appendChild(opt);
   });
 }
 
@@ -171,6 +172,22 @@ function filterCab() {
   });
 }
 
+// Load Pickup based on shift
+function loadPickup() {
+  const shift = document.getElementById("shift").value;
+  const pick = document.getElementById("pickupList");
+
+  pick.innerHTML = "";
+
+  let route = shift === "Morning" ? upRoute : downRoute;
+
+  route.forEach(loc => {
+    let opt = document.createElement("option");
+    opt.value = loc;
+    pick.appendChild(opt);
+  });
+}
+
 // Set ETA
 function setETA() {
   const cab = document.getElementById("cab").value;
@@ -183,14 +200,25 @@ function setETA() {
   document.getElementById("eta").value =
     match ? match.eta : "Not Available";
 }
-function submitForm(e) {
-  e.preventDefault(); // stop redirect
 
+// Submit
+function submitForm(e) {
+  e.preventDefault(); 
+
+// stop redirect
   const form = e.target;
+
+  const eta = document.getElementById("eta").value;
+  const drop = form.querySelector('[name="entry.1500323835"]').value;
+
+  if (!drop) {
+    alert("❌ Please select valid drop location");
+    return;
+  }
 
   // get ETA value
   const eta = document.getElementById("eta").value;
-
+}
   // send data to Google Form
   fetch(form.action, {
     method: "POST",
