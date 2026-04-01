@@ -15,6 +15,26 @@ header {
   font-size:20px;
 }
 
+/* Tabs */
+.tabs {
+  display:flex;
+  background:#fff;
+}
+
+.tab {
+  flex:1;
+  padding:12px;
+  text-align:center;
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+}
+
+.tab.active {
+  border-bottom:3px solid #1976d2;
+  font-weight:bold;
+}
+
+/* Layout */
 .container { padding:10px; }
 
 .filters {
@@ -23,20 +43,41 @@ header {
   margin-bottom:10px;
 }
 
-select {
+select, input {
   flex:1;
   padding:10px;
   border-radius:8px;
 }
 
-.summary-card {
-  background:#e3f2fd;
-  padding:10px;
-  margin-bottom:6px;
-  border-radius:8px;
-  font-weight:bold;
+/* Summary UI */
+.summary-section {
+  margin-bottom:15px;
 }
 
+.summary-title {
+  font-weight:bold;
+  margin:10px 0;
+}
+
+.summary-card {
+  background:#e3f2fd;
+  padding:12px;
+  margin-bottom:8px;
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.count {
+  background:#1976d2;
+  color:white;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:12px;
+}
+
+/* Cards */
 .card {
   background:white;
   padding:12px;
@@ -61,17 +102,36 @@ select {
 
 <header>🚖 Driver Dashboard</header>
 
-<div class="container">
-
-<div id="summary"></div>
-
-<div class="filters">
-  <select id="shiftFilter"><option value="">All Shifts</option></select>
-  <select id="cabFilter"><option value="">All Cab Types</option></select>
-  <select id="pickupFilter"><option value="">All Pickups</option></select>
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('summaryTab', this)">Summary</div>
+  <div class="tab" onclick="showTab('detailsTab', this)">Passenger Details</div>
 </div>
 
-<div id="list"></div>
+<div class="container">
+
+<!-- DATE FILTER (COMMON) -->
+<div class="filters">
+  <input type="date" id="dateFilter">
+</div>
+
+<!-- ================= SUMMARY TAB ================= -->
+<div id="summaryTab">
+  <div id="summary"></div>
+</div>
+
+<!-- ================= DETAILS TAB ================= -->
+<div id="detailsTab" style="display:none;">
+
+  <div class="filters">
+    <select id="shiftFilter"><option value="">All Shifts</option></select>
+    <select id="cabFilter"><option value="">All Cab Types</option></select>
+    <select id="pickupFilter"><option value="">All Pickups</option></select>
+  </div>
+
+  <div id="list"></div>
+
+</div>
 
 </div>
 
@@ -85,9 +145,27 @@ fetch(API_URL)
 .then(json => {
   data = json;
   populateFilters();
-  render();
+
+  // Default today date
+  const today = new Date().toISOString().split("T")[0];
+  dateFilter.value = today;
+
+  renderSummaryTab();
+  renderDetails();
 });
 
+/* TAB SWITCH */
+function showTab(tabId, el) {
+  document.getElementById("summaryTab").style.display = "none";
+  document.getElementById("detailsTab").style.display = "none";
+
+  document.getElementById(tabId).style.display = "block";
+
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+}
+
+/* FILTERS */
 function populateFilters() {
   const shifts = [...new Set(data.map(d => d.Shift))];
   const cabs = [...new Set(data.map(d => d["Cab Type"]))];
@@ -98,39 +176,88 @@ function populateFilters() {
   pickups.forEach(p => pickupFilter.innerHTML += `<option>${p}</option>`);
 }
 
-shiftFilter.onchange = render;
-cabFilter.onchange = render;
-pickupFilter.onchange = render;
+shiftFilter.onchange = renderDetails;
+cabFilter.onchange = renderDetails;
+pickupFilter.onchange = renderDetails;
 
-function render() {
+dateFilter.onchange = () => {
+  renderSummaryTab();
+  renderDetails();
+};
+
+/* ================= SUMMARY ================= */
+function renderSummaryTab() {
+
+  const selectedDate = dateFilter.value;
+
+  const filtered = data.filter(d => {
+    const rowDate = new Date(d.Timestamp).toISOString().split("T")[0];
+    return !selectedDate || rowDate === selectedDate;
+  });
+
+  const map = {
+    Morning: {},
+    Evening: {}
+  };
+
+  filtered.forEach(d => {
+    const shift = d.Shift;
+    const time = d["Estimated Arrival Time"];
+
+    if (!map[shift]) return;
+
+    map[shift][time] = (map[shift][time] || 0) + 1;
+  });
+
+  summary.innerHTML = `
+    ${renderSection("🌅 Morning", map.Morning)}
+    ${renderSection("🌙 Evening", map.Evening)}
+  `;
+}
+
+function renderSection(title, obj) {
+
+  const keys = Object.keys(obj).sort((a,b)=> parseTime(a) - parseTime(b));
+
+  if (keys.length === 0) return "";
+
+  return `
+    <div class="summary-section">
+      <div class="summary-title">${title}</div>
+      ${keys.map(k => `
+        <div class="summary-card">
+          <span>${k}</span>
+          <span class="count">${obj[k]} Persons</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ================= DETAILS ================= */
+function renderDetails() {
+
   const shift = shiftFilter.value;
   const cab = cabFilter.value;
   const pickup = pickupFilter.value;
+  const selectedDate = dateFilter.value;
 
-  const filtered = data.filter(d =>
-    (!shift || d.Shift === shift) &&
-    (!cab || d["Cab Type"] === cab) &&
-    (!pickup || d["Pickup Location"] === pickup)
-  );
+  const filtered = data.filter(d => {
 
-  renderSummary(filtered);
+    const rowDate = new Date(d.Timestamp).toISOString().split("T")[0];
+
+    return (
+      (!shift || d.Shift === shift) &&
+      (!cab || d["Cab Type"] === cab) &&
+      (!pickup || d["Pickup Location"] === pickup) &&
+      (!selectedDate || rowDate === selectedDate)
+    );
+  });
+
   renderList(filtered);
 }
 
-function renderSummary(data) {
-  const map = {};
-
-  data.forEach(d => {
-    const key = `${d.Shift} | ${d["Cab Type"]}`;
-    map[key] = (map[key] || 0) + 1;
-  });
-
-  summary.innerHTML = Object.keys(map)
-    .map(k => `<div class="summary-card">${k} → ${map[k]}</div>`)
-    .join('');
-}
-
-// SORT BY ETA
+/* LIST */
 function renderList(data) {
 
   data.sort((a, b) => {
@@ -140,17 +267,17 @@ function renderList(data) {
   list.innerHTML = data.map(d => `
     <div class="card">
       <div class="name">${d["Your Name"]}</div>
-      <div class="row">Contact: ${d["Contact Number"]}</div>
+      <div class="row">📞 Contact: ${d["Contact Number"]}</div>
       <div class="row">Shift: ${d.Shift}</div>
       <div class="row">Cab: ${d["Cab Type"]}</div>
-      <div class="eta">Pickup: ${d["Pickup Location"]}</div>
+      <div class="row">Pickup: ${d["Pickup Location"]}</div>
       <div class="row">Drop: ${d["Drop Location"]}</div>
       <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
     </div>
   `).join('');
 }
 
-// TIME PARSER
+/* TIME PARSER */
 function parseTime(t) {
   if (!t || t === "N/A") return 999999;
 
