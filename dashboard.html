@@ -54,6 +54,19 @@ select {
   font-weight:bold;
   color:green;
 }
+.split-container {
+  display:flex;
+  gap:10px;
+}
+
+.half {
+  flex:1;
+}
+
+.divider {
+  width:2px;
+  background:#ccc;
+}
 </style>
 </head>
 
@@ -66,11 +79,24 @@ select {
 <div id="summary"></div>
 
 <div class="filters">
+  <input type="date" id="dateFilter" />
   <select id="shiftFilter"><option value="">All Shifts</option></select>
   <select id="cabFilter"><option value="">All Cab Types</option></select>
   <select id="pickupFilter"><option value="">All Pickups</option></select>
 </div>
-<div id="list"></div>
+<div class="split-container">
+  <div class="half">
+    <h3>🌅 Morning</h3>
+    <div id="morningList"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="half">
+    <h3>🌙 Evening</h3>
+    <div id="eveningList"></div>
+  </div>
+</div>
 
 </div>
 
@@ -87,6 +113,9 @@ fetch(API_URL)
   render();
 });
 
+const today = new Date().toISOString().split("T")[0];
+dateFilter.value = today;
+
 function populateFilters() {
   const shifts = [...new Set(data.map(d => d.Shift))];
   const cabs = [...new Set(data.map(d => d["Cab Type"]))];
@@ -100,53 +129,50 @@ function populateFilters() {
 shiftFilter.onchange = render;
 cabFilter.onchange = render;
 
+dateFilter.onchange = render;
+
 function render() {
-  const shift = shiftFilter.value;
   const cab = cabFilter.value;
   const pickup = pickupFilter.value;
+  const selectedDate = dateFilter.value;
 
-  const filtered = data.filter(d =>
-    (!shift || d.Shift === shift) &&
-    (!cab || d["Cab Type"] === cab) &&
-    (!pickup || d["Pickup Location"] === pickup)
-  );
+  const filtered = data.filter(d => {
 
-  renderSummary(filtered);
-  renderList(filtered);
-  pickupFilter.onchange = render;
-}
+    // Extract only date from timestamp
+    const rowDate = new Date(d.Timestamp).toISOString().split("T")[0];
 
-function renderSummary(data) {
-  const map = {};
-
-  data.forEach(d => {
-    const key = `${d.Shift} | ${d["Cab Type"]}`;
-    map[key] = (map[key] || 0) + 1;
+    return (
+      (!cab || d["Cab Type"] === cab) &&
+      (!pickup || d["Pickup Location"] === pickup) &&
+      (!selectedDate || rowDate === selectedDate)
+    );
   });
 
-  summary.innerHTML = Object.keys(map)
-    .map(k => `<div class="summary-card">${k} → ${map[k]}</div>`)
-    .join('');
+  // Split by Shift
+  const morning = filtered.filter(d => d.Shift.toLowerCase() === "morning");
+  const evening = filtered.filter(d => d.Shift.toLowerCase() === "evening");
+
+  renderList(morning, "morningList");
+  renderList(evening, "eveningList");
 }
 
 // SORT BY ETA
-function renderList(data) {
+function renderList(data, targetId) {
 
   data.sort((a, b) => {
     return parseTime(a["Estimated Arrival Time"]) - parseTime(b["Estimated Arrival Time"]);
   });
 
-  list.innerHTML = data.map(d => `
-  <div class="card">
-    <div class="name">${d["Your Name"]}</div>
-    <div class="row">Contact: ${d["Contact Number"]}</div>
-    <div class="row">Shift: ${d.Shift}</div>
-    <div class="row">Cab: ${d["Cab Type"]}</div>
-    <div class="eta">Pickup: ${d["Pickup Location"]}</div>
-    <div class="row">Drop: ${d["Drop Location"]}</div>
-    <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
-  </div>
-`).join('');
+  document.getElementById(targetId).innerHTML = data.map(d => `
+    <div class="card">
+      <div class="name">${d["Your Name"]}</div>
+      <div class="row">📞 Contact: ${d["Contact Number"]}</div>
+      <div class="row">Cab: ${d["Cab Type"]}</div>
+      <div class="eta">Pickup: ${d["Pickup Location"]}</div>
+      <div class="row">Drop: ${d["Drop Location"]}</div>
+      <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
+    </div>
+  `).join('');
 }
 
 // TIME PARSER
