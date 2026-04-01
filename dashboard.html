@@ -15,6 +15,11 @@ header {
   font-size:20px;
 }
 
+.status {
+  margin-top:6px;
+  font-weight:bold;
+}
+
 /* Tabs */
 .tabs {
   display:flex;
@@ -254,6 +259,22 @@ function renderSummaryCards(map) {
 }
 
 /* DETAILS */
+
+function getStatusUI(status) {
+  if (!status) return "";
+
+  status = status.toLowerCase();
+
+  if (status.includes("pick")) {
+    return "✅ Picked Up";
+  } else if (status.includes("book")) {
+    return "📌 Booked";
+  } else {
+    return "⏳ Pending";
+  }
+}
+
+
 function renderDetails() {
 
   const shift = shiftFilter.value;
@@ -291,6 +312,7 @@ function renderList(data) {
       <div class="eta">Pickup: ${d["Pickup Location"]}</div>
       <div class="row">Drop: ${d["Drop Location"]}</div>
       <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
+      <div class="status">${getStatusUI(d.Status)}</div>
     </div>
   `).join('');
 }
