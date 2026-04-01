@@ -4,91 +4,120 @@
   <title>Cab Booking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      font-family: Arial;
-      background: #f5f5f5;
-      padding: 20px;
-    }
-    .box {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 400px;
-      margin: auto;
-      box-shadow: 0 0 10px #ccc;
-    }
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-    }
-  </style>
+<style>
+body {
+  font-family: Arial;
+  background: #f4f6f9;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 420px;
+  margin: auto;
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+input:focus, select:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+}
+</style>
+
 </head>
 
 <body>
 
-<div class="box">
-  <h2>Cab Booking</h2>
+<div class="container">
+  <h2>Cab Booking Form</h2>
 
   <form action="https://docs.google.com/forms/d/e/1FAIpQLScU0eto2h9yRiCDoE9HvWhWDe7STGnb7Nba2wDv1r-B04suIA/formResponse" method="POST">
 
     <!-- NAME -->
-    <input type="text" name="entry.1455248696" placeholder="Your Name" required>
+    <label>Enter your name</label>
+    <input type="text" name="entry.1455248696" placeholder="e.g. Rahul Sharma" required>
 
-    <!-- CONTACT -->
-    <input type="number" name="entry.468587822" placeholder="Contact Number" required>
+    <!-- PHONE -->
+    <label>Enter contact number</label>
+    <input type="tel" name="entry.468587822" placeholder="e.g. 9876543210" required>
 
     <!-- SHIFT -->
-    <select name="entry.157653572" required>
-      <option value="">Select Shift</option>
-      <option>Morning</option>
-      <option>Evening</option>
+    <label>Select shift</label>
+    <select id="shift" name="entry.157653572" required onchange="filterCab()">
+      <option value="">-- Select Shift --</option>
+      <option value="Morning">Morning</option>
+      <option value="Evening">Evening</option>
     </select>
 
-    <!-- CAB TYPE -->
+    <!-- CAB -->
+    <label>Select cab timing</label>
     <select id="cab" name="entry.255326989" required onchange="setETA()">
-      <option value="">Select Cab Type</option>
-      <option>Morning 7:30 AM</option>
-      <option>Morning 8:10 AM</option>
-      <option>Morning 8:40 AM</option>
-      <option>Evening 5:20 PM</option>
-      <option>Evening 5:40 PM</option>
-      <option>Evening 6:20 PM</option>
+      <option value="">-- Select Cab --</option>
     </select>
 
     <!-- PICKUP -->
-    <input list="pickupList" id="pickup" name="entry.770044040" placeholder="Pickup Location" required onchange="setETA()">
+    <label>Select pickup location</label>
+    <input list="pickupList" id="pickup" name="entry.770044040" placeholder="Start typing..." required onchange="setETA()">
     <datalist id="pickupList"></datalist>
 
     <!-- DROP -->
-    <input list="dropList" name="entry.1500323835" placeholder="Drop Location" required>
+    <label>Select drop location</label>
+    <input list="dropList" name="entry.1500323835" placeholder="Start typing..." required>
     <datalist id="dropList"></datalist>
 
     <!-- ETA -->
-    <input type="text" id="eta" placeholder="Estimated Arrival Time" readonly>
+    <label>Estimated arrival time</label>
+    <input type="text" id="eta" readonly placeholder="Auto-filled">
 
-    <button type="submit">Book Cab</button>
+    <button type="submit">Submit Booking</button>
 
   </form>
 </div>
 
 <script>
 
-// 🔗 PASTE YOUR APPS SCRIPT URL HERE
-const API_URL = "https://script.google.com/macros/s/AKfycbwqy3nYMOug4eApWFDb0KhaIi67Hk4BdmdS3UNeK0z-BDxZbuDll1rdrQtIbJZX4LGo/exec";
+// 🔗 YOUR API
+const API_URL = "https://script.google.com/macros/s/AKfycby4VVFAHangOe4n8vtayTguUJNdQomlHacpQH9XTsOZ05CxRr6PJscE1_oJt0s80cld/exec";
 
 let data = [];
 let locations = new Set();
 
-// 🚀 Load data once (FAST)
+// Load data
 fetch(API_URL)
 .then(res => res.json())
 .then(res => {
@@ -99,7 +128,7 @@ fetch(API_URL)
   loadLocations();
 });
 
-// 📍 Load Pickup & Drop (same list)
+// Load locations
 function loadLocations() {
   const pick = document.getElementById("pickupList");
   const drop = document.getElementById("dropList");
@@ -115,7 +144,34 @@ function loadLocations() {
   });
 }
 
-// ⏱ ETA Auto
+// Cab options
+const cabOptions = [
+  "Morning 7:30 AM",
+  "Morning 8:10 AM",
+  "Morning 8:40 AM",
+  "Evening 5:20 PM",
+  "Evening 5:40 PM",
+  "Evening 6:20 PM"
+];
+
+// Filter cab by shift
+function filterCab() {
+  const shift = document.getElementById("shift").value;
+  const cab = document.getElementById("cab");
+
+  cab.innerHTML = '<option value="">-- Select Cab --</option>';
+
+  cabOptions.forEach(c => {
+    if (c.startsWith(shift)) {
+      let opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      cab.appendChild(opt);
+    }
+  });
+}
+
+// Set ETA
 function setETA() {
   const cab = document.getElementById("cab").value;
   const pickup = document.getElementById("pickup").value;
