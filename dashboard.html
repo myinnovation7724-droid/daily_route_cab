@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Driver Dashboard</title>
+<title>👨‍💼 Admin Dashboard</title>
 
 <style>
 body { font-family: Arial; margin:0; background:#f4f6f9; }
@@ -166,7 +166,7 @@ function loadData() {
     data = json;
     populateFilters();
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleDateString('en-CA');
     if (!dateFilter.value) dateFilter.value = today;
 
     renderSummaryTab();
@@ -216,7 +216,7 @@ function renderSummaryTab() {
   const selectedDate = dateFilter.value;
 
   const filtered = data.filter(d => {
-    const rowDate = new Date(d.Timestamp).toISOString().split("T")[0];
+    const rowDate = new Date(d.Timestamp).toLocaleDateString('en-CA');
     return !selectedDate || rowDate === selectedDate;
   });
 
@@ -263,8 +263,7 @@ function renderDetails() {
 
   const filtered = data.filter(d => {
 
-    const rowDate = new Date(d.Timestamp).toISOString().split("T")[0];
-
+    const rowDate = new Date(d.Timestamp).toLocaleDateString('en-CA');
     return (
       (!shift || d.Shift === shift) &&
       (!cab || d["Cab Type"] === cab) &&
