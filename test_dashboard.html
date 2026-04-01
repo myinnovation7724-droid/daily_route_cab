@@ -12,15 +12,20 @@ header {
   color:white;
   padding:15px;
   text-align:center;
+  font-size:20px;
 }
 
-.tabs { display:flex; background:#fff; }
+.tabs {
+  display:flex;
+  background:#fff;
+}
 
 .tab {
   flex:1;
   padding:12px;
   text-align:center;
   cursor:pointer;
+  border-bottom:2px solid transparent;
 }
 
 .tab.active {
@@ -30,50 +35,100 @@ header {
 
 .container { padding:10px; }
 
-.topbar {
+.filters {
   display:flex;
   gap:8px;
   margin-bottom:10px;
 }
 
-.topbar input, button {
+select {
+  flex:1;
   padding:10px;
   border-radius:8px;
 }
 
-button {
+.summary-title {
+  font-weight:bold;
+  margin:12px 0 6px;
+}
+
+.summary-card {
+  background:#e3f2fd;
+  padding:12px;
+  margin-bottom:8px;
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.count {
   background:#1976d2;
   color:white;
-  border:none;
-  cursor:pointer;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:12px;
 }
 
 .card {
   background:white;
   padding:12px;
   margin-bottom:10px;
-  border-radius:10px;
+  border-radius:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
-.eta { color:green; font-weight:bold; }
+.name { font-weight:bold; }
+.row { font-size:14px; }
+
+.eta {
+  margin-top:6px;
+  font-weight:bold;
+  color:green;
+}
+
+/* OTP UI */
+.otp-box {
+  display:flex;
+  gap:5px;
+  margin-top:10px;
+}
+
+.otp-box input {
+  width:30px;
+  height:40px;
+  text-align:center;
+  font-size:16px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+.verify-btn {
+  margin-top:8px;
+  padding:6px;
+  width:100%;
+  background:#1976d2;
+  color:white;
+  border:none;
+  border-radius:8px;
+}
+
+.msg {
+  font-size:13px;
+  margin-top:5px;
+}
 </style>
 </head>
 
 <body>
 
-<header>🚖 Driver Dashboard</header>
+<header>🚖 Driver Dashboard (Today)</header>
 
 <div class="tabs">
   <div class="tab active" onclick="showTab('summaryTab', this)">Summary</div>
-  <div class="tab" onclick="showTab('detailsTab', this)">Details</div>
+  <div class="tab" onclick="showTab('detailsTab', this)">Passenger Details</div>
 </div>
 
 <div class="container">
-
-<div class="topbar">
-  <input type="date" id="dateFilter">
-  <button onclick="refreshData()">🔄 Refresh</button>
-</div>
 
 <!-- SUMMARY -->
 <div id="summaryTab">
@@ -83,12 +138,10 @@ button {
 <!-- DETAILS -->
 <div id="detailsTab" style="display:none;">
 
-  <!-- OTP -->
-  <div class="card">
-    <h3>🔐 Verify OTP</h3>
-    <input type="number" id="otpInput" placeholder="Enter OTP">
-    <button onclick="verifyOTP()">Verify</button>
-    <p id="otpMsg"></p>
+  <div class="filters">
+    <select id="shiftFilter"><option value="">All Shifts</option></select>
+    <select id="cabFilter"><option value="">All Cab Types</option></select>
+    <select id="pickupFilter"><option value="">All Pickups</option></select>
   </div>
 
   <div id="list"></div>
@@ -98,21 +151,24 @@ button {
 </div>
 
 <script>
-
-const API_URL = "https://script.google.com/macros/s/AKfycbxweumoEVUKplYGa2TTyAhYa1JMXOzJ2hoHWpjTKkU8P7S37acGfD2HwKVdxNOjj3oG/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzwuSKz0spGY43JLamPZOsUZYwYH89lR6srjyWfZsmi2FFthkgPdfwApVVNVT4xrrXy/exec";
 
 let data = [];
+const today = new Date().toISOString().split("T")[0];
 
 /* LOAD DATA */
 function loadData() {
-  fetch(API_URL + "?t=" + new Date().getTime()) // 🔥 cache fix
+  fetch(API_URL)
   .then(res => res.json())
   .then(json => {
-    data = json;
 
-    const today = new Date().toISOString().split("T")[0];
-    if (!dateFilter.value) dateFilter.value = today;
+    // ✅ TODAY ONLY
+    data = json.filter(d => {
+      const rowDate = new Date(d.Timestamp).toISOString().split("T")[0];
+      return rowDate === today;
+    });
 
+    populateFilters();
     renderSummaryTab();
     renderDetails();
   });
@@ -120,88 +176,145 @@ function loadData() {
 
 loadData();
 
-/* REFRESH */
-function refreshData() {
-  list.innerHTML = "⏳ Refreshing...";
-  loadData();
-}
+/* TAB SWITCH */
+function showTab(tabId, el) {
+  document.getElementById("summaryTab").style.display = "none";
+  document.getElementById("detailsTab").style.display = "none";
 
-/* OTP VERIFY */
-function verifyOTP() {
-
-  const otp = document.getElementById("otpInput").value;
-
-  if (!otp) {
-    otpMsg.innerHTML = "❌ Enter OTP";
-    return;
-  }
-
-  otpMsg.innerHTML = "⏳ Verifying...";
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ otp: otp })
-  })
-  .then(res => res.json())
-  .then(res => {
-
-    if (res.status === "success") {
-      otpMsg.innerHTML = "✅ Passenger Picked";
-      otpInput.value = "";
-      loadData();
-    } else {
-      otpMsg.innerHTML = "❌ Please enter correct OTP";
-    }
-
-  });
-}
-
-/* TABS */
-function showTab(id, el) {
-  summaryTab.style.display = "none";
-  detailsTab.style.display = "none";
-
-  document.getElementById(id).style.display = "block";
+  document.getElementById(tabId).style.display = "block";
 
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   el.classList.add("active");
 }
 
+/* FILTERS */
+function populateFilters() {
+  shiftFilter.innerHTML = '<option value="">All Shifts</option>';
+  cabFilter.innerHTML = '<option value="">All Cab Types</option>';
+  pickupFilter.innerHTML = '<option value="">All Pickups</option>';
+
+  const shifts = [...new Set(data.map(d => d.Shift))];
+  const cabs = [...new Set(data.map(d => d["Cab Type"]))];
+  const pickups = [...new Set(data.map(d => d["Pickup Location"]))];
+
+  shifts.forEach(s => shiftFilter.innerHTML += `<option>${s}</option>`);
+  cabs.forEach(c => cabFilter.innerHTML += `<option>${c}</option>`);
+  pickups.forEach(p => pickupFilter.innerHTML += `<option>${p}</option>`);
+}
+
+shiftFilter.onchange = renderDetails;
+cabFilter.onchange = renderDetails;
+pickupFilter.onchange = renderDetails;
+
 /* SUMMARY */
 function renderSummaryTab() {
 
-  const selectedDate = dateFilter.value;
+  const bookingMap = {};
+  const pickedMap = {};
 
-  const filtered = data.filter(d => {
-    const rowDate = new Date(d.Timestamp).toISOString().split("T")[0];
-    return !selectedDate || rowDate === selectedDate;
+  data.forEach(d => {
+    const cab = d["Cab Type"];
+
+    bookingMap[cab] = (bookingMap[cab] || 0) + 1;
+
+    if (d.Status === "Picked") {
+      pickedMap[cab] = (pickedMap[cab] || 0) + 1;
+    }
   });
 
-  let booked = filtered.length;
-  let picked = filtered.filter(d => d.Status === "Picked").length;
-
   summary.innerHTML = `
-    <div class="card">📊 Booked: ${booked}</div>
-    <div class="card">✅ Picked: ${picked}</div>
+    <div class="summary-title">📊 Booking Details</div>
+    ${renderSummaryCards(bookingMap)}
+
+    <div class="summary-title">✅ Picked Persons</div>
+    ${renderSummaryCards(pickedMap)}
   `;
+}
+
+function renderSummaryCards(map) {
+  return Object.keys(map).map(k => `
+    <div class="summary-card">
+      <span>${k}</span>
+      <span class="count">${map[k]} Persons</span>
+    </div>
+  `).join('');
 }
 
 /* DETAILS */
 function renderDetails() {
 
-  list.innerHTML = data.map(d => `
+  const shift = shiftFilter.value;
+  const cab = cabFilter.value;
+  const pickup = pickupFilter.value;
+
+  const filtered = data.filter(d => (
+    (!shift || d.Shift === shift) &&
+    (!cab || d["Cab Type"] === cab) &&
+    (!pickup || d["Pickup Location"] === pickup)
+  ));
+
+  renderList(filtered);
+}
+
+/* LIST WITH OTP */
+function renderList(data) {
+
+  list.innerHTML = data.map((d, index) => `
     <div class="card">
-      <b>${d["Your Name"]}</b><br>
-      ${d["Contact Number"]}<br>
-      ${d["Cab Type"]}<br>
-      ${d["Pickup Location"]}<br>
-      ETA: ${d["Estimated Arrival Time"]}<br>
-      Status: <b>${d["Status"]}</b>
+      <div class="name">${d["Your Name"]}</div>
+      <div class="row">Contact: ${d["Contact Number"]}</div>
+      <div class="row">Shift: ${d.Shift}</div>
+      <div class="row">Cab: ${d["Cab Type"]}</div>
+      <div class="eta">Pickup: ${d["Pickup Location"]}</div>
+      <div class="row">Drop: ${d["Drop Location"]}</div>
+      <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
+
+      <!-- OTP INPUT -->
+      <div class="otp-box" id="otp-${index}">
+        ${[0,1,2,3,4,5].map(i => `<input maxlength="1" oninput="moveNext(this, ${index}, ${i})">`).join('')}
+      </div>
+
+      <button class="verify-btn" onclick="verifyOTP(${index})">Verify OTP</button>
+
+      <div class="msg" id="msg-${index}"></div>
     </div>
   `).join('');
 }
 
+/* OTP INPUT AUTO MOVE */
+function moveNext(el, row, index) {
+  if (el.value && index < 5) {
+    const next = document.querySelectorAll(`#otp-${row} input`)[index+1];
+    if (next) next.focus();
+  }
+}
+
+/* VERIFY OTP */
+function verifyOTP(index) {
+
+  const inputs = document.querySelectorAll(`#otp-${index} input`);
+  const otp = Array.from(inputs).map(i => i.value).join('');
+
+  const msg = document.getElementById(`msg-${index}`);
+
+  if (otp.length !== 6) {
+    msg.innerHTML = "⚠️ Enter 6 digit OTP";
+    msg.style.color = "orange";
+    return;
+  }
+
+  fetch(API_URL + "?otp=" + otp)
+  .then(res => res.json())
+  .then(res => {
+    if (res.success) {
+      msg.innerHTML = "✅ OTP Verified";
+      msg.style.color = "green";
+    } else {
+      msg.innerHTML = "❌ Invalid OTP";
+      msg.style.color = "red";
+    }
+  });
+}
 </script>
 
 </body>
