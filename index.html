@@ -92,12 +92,12 @@ button {
 
     <!-- PICKUP -->
     <label>Select pickup location</label>
-    <input list="pickupList" id="pickup" name="entry.770044040" placeholder="" required onchange="setETA()">
+    <input list="pickupList" id="pickup" name="entry.770044040" required onchange="validateField('pickup'); setETA()">
     <datalist id="pickupList"></datalist>
 
     <!-- DROP -->
     <label>Select drop location</label>
-    <input list="dropList" name="entry.1500323835" placeholder="" required>
+    <input list="dropList" id="drop" name="entry.1500323835" required onchange="validateField('drop')">
     <datalist id="dropList"></datalist>
 
     <!-- ETA -->
@@ -144,6 +144,25 @@ function loadLocations() {
   });
 }
 
+//////////////////////////////////////////////////////
+// ✅ NEW: VALIDATION FUNCTION
+//////////////////////////////////////////////////////
+function isValidLocation(value) {
+  return Array.from(locations).includes(value);
+}
+
+//////////////////////////////////////////////////////
+// ✅ NEW: FIELD VALIDATION (AUTO FIX)
+//////////////////////////////////////////////////////
+function validateField(inputId) {
+  const input = document.getElementById(inputId);
+
+  if (input.value && !isValidLocation(input.value)) {
+    alert("Please select a value from the list only.");
+    input.value = "";
+  }
+}
+
 // Cab options
 const cabOptions = [
   "Morning 7:30 AM",
@@ -183,10 +202,29 @@ function setETA() {
   document.getElementById("eta").value =
     match ? match.eta : "Not Available";
 }
+
+//////////////////////////////////////////////////////
+// ✅ UPDATED SUBMIT WITH VALIDATION
+//////////////////////////////////////////////////////
 function submitForm(e) {
   e.preventDefault();
 
   const form = e.target;
+
+  const pickup = document.getElementById("pickup").value;
+  const drop = document.getElementById("drop").value;
+
+  // 🔒 VALIDATE pickup & drop
+  if (!isValidLocation(pickup)) {
+    alert("Please select a valid pickup location from the list.");
+    return;
+  }
+
+  if (!isValidLocation(drop)) {
+    alert("Please select a valid drop location from the list.");
+    return;
+  }
+
   const eta = document.getElementById("eta").value;
 
   const name = form.querySelector('[name="entry.1455248696"]').value;
@@ -242,6 +280,5 @@ function submitForm(e) {
 }
 
 </script>
-
 </body>
 </html>
