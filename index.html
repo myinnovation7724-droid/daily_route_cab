@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cab Booking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 0 10px #ccc;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>Cab Booking</h2>
+
+  <form action="https://docs.google.com/forms/d/e/1FAIpQLScU0eto2h9yRiCDoE9HvWhWDe7STGnb7Nba2wDv1r-B04suIA/formResponse" method="POST">
+
+    <!-- NAME -->
+    <input type="text" name="entry.1455248696" placeholder="Your Name" required>
+
+    <!-- CONTACT -->
+    <input type="number" name="entry.468587822" placeholder="Contact Number" required>
+
+    <!-- SHIFT -->
+    <select name="entry.157653572" required>
+      <option value="">Select Shift</option>
+      <option>Morning</option>
+      <option>Evening</option>
+    </select>
+
+    <!-- CAB TYPE -->
+    <select id="cab" name="entry.255326989" required onchange="setETA()">
+      <option value="">Select Cab Type</option>
+      <option>Morning 7:30 AM</option>
+      <option>Morning 8:10 AM</option>
+      <option>Morning 8:40 AM</option>
+      <option>Evening 5:20 PM</option>
+      <option>Evening 5:40 PM</option>
+      <option>Evening 6:20 PM</option>
+    </select>
+
+    <!-- PICKUP -->
+    <input list="pickupList" id="pickup" name="entry.770044040" placeholder="Pickup Location" required onchange="setETA()">
+    <datalist id="pickupList"></datalist>
+
+    <!-- DROP -->
+    <input list="dropList" name="entry.1500323835" placeholder="Drop Location" required>
+    <datalist id="dropList"></datalist>
+
+    <!-- ETA -->
+    <input type="text" id="eta" placeholder="Estimated Arrival Time" readonly>
+
+    <button type="submit">Book Cab</button>
+
+  </form>
+</div>
+
+<script>
+
+// 🔗 PASTE YOUR APPS SCRIPT URL HERE
+const API_URL = "https://script.google.com/macros/s/AKfycbwqy3nYMOug4eApWFDb0KhaIi67Hk4BdmdS3UNeK0z-BDxZbuDll1rdrQtIbJZX4LGo/exec";
+
+let data = [];
+let locations = new Set();
+
+// 🚀 Load data once (FAST)
+fetch(API_URL)
+.then(res => res.json())
+.then(res => {
+  data = res;
+
+  res.forEach(r => locations.add(r.pickup));
+
+  loadLocations();
+});
+
+// 📍 Load Pickup & Drop (same list)
+function loadLocations() {
+  const pick = document.getElementById("pickupList");
+  const drop = document.getElementById("dropList");
+
+  locations.forEach(loc => {
+    let o1 = document.createElement("option");
+    o1.value = loc;
+    pick.appendChild(o1);
+
+    let o2 = document.createElement("option");
+    o2.value = loc;
+    drop.appendChild(o2);
+  });
+}
+
+// ⏱ ETA Auto
+function setETA() {
+  const cab = document.getElementById("cab").value;
+  const pickup = document.getElementById("pickup").value;
+
+  let match = data.find(d =>
+    d.cab === cab && d.pickup === pickup
+  );
+
+  document.getElementById("eta").value =
+    match ? match.eta : "Not Available";
+}
+
+</script>
+
+</body>
+</html>
