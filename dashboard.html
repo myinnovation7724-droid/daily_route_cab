@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driver Dashboard</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#f4f6f9; }
+
+header {
+  background:#1976d2;
+  color:white;
+  padding:15px;
+  text-align:center;
+  font-size:20px;
+}
+
+.container { padding:10px; }
+
+.filters {
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+select {
+  flex:1;
+  padding:10px;
+  border-radius:8px;
+}
+
+.summary-card {
+  background:#e3f2fd;
+  padding:10px;
+  margin-bottom:6px;
+  border-radius:8px;
+  font-weight:bold;
+}
+
+.card {
+  background:white;
+  padding:12px;
+  margin-bottom:10px;
+  border-radius:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.name { font-weight:bold; }
+
+.row { font-size:14px; }
+
+.eta {
+  margin-top:6px;
+  font-weight:bold;
+  color:green;
+}
+</style>
+</head>
+
+<body>
+
+<header>🚖 Driver Dashboard</header>
+
+<div class="container">
+
+<div id="summary"></div>
+
+<div class="filters">
+  <select id="shiftFilter"><option value="">All Shifts</option></select>
+  <select id="cabFilter"><option value="">All Cab Types</option></select>
+</div>
+
+<div id="list"></div>
+
+</div>
+
+<script>
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_URL";
+
+let data = [];
+
+fetch(API_URL)
+.then(res => res.json())
+.then(json => {
+  data = json;
+  populateFilters();
+  render();
+});
+
+function populateFilters() {
+  const shifts = [...new Set(data.map(d => d.Shift))];
+  const cabs = [...new Set(data.map(d => d["Cab Type"]))];
+
+  shifts.forEach(s => shiftFilter.innerHTML += `<option>${s}</option>`);
+  cabs.forEach(c => cabFilter.innerHTML += `<option>${c}</option>`);
+}
+
+shiftFilter.onchange = render;
+cabFilter.onchange = render;
+
+function render() {
+  const shift = shiftFilter.value;
+  const cab = cabFilter.value;
+
+  const filtered = data.filter(d =>
+    (!shift || d.Shift === shift) &&
+    (!cab || d["Cab Type"] === cab)
+  );
+
+  renderSummary(filtered);
+  renderList(filtered);
+}
+
+function renderSummary(data) {
+  const map = {};
+
+  data.forEach(d => {
+    const key = `${d.Shift} | ${d["Cab Type"]}`;
+    map[key] = (map[key] || 0) + 1;
+  });
+
+  summary.innerHTML = Object.keys(map)
+    .map(k => `<div class="summary-card">${k} → ${map[k]}</div>`)
+    .join('');
+}
+
+// SORT BY ETA
+function renderList(data) {
+
+  data.sort((a, b) => {
+    return parseTime(a["Estimated Arrival Time"]) - parseTime(b["Estimated Arrival Time"]);
+  });
+
+  list.innerHTML = data.map(d => `
+    <div class="card">
+      <div class="name">${d["Your Name"]}</div>
+      <div class="row">Shift: ${d.Shift}</div>
+      <div class="row">Cab: ${d["Cab Type"]}</div>
+      <div class="row">Pickup: ${d["Pickup Location"]}</div>
+      <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
+    </div>
+  `).join('');
+}
+
+// TIME PARSER
+function parseTime(t) {
+  if (!t || t === "N/A") return 999999;
+
+  const [time, mod] = t.split(" ");
+  let [h, m] = time.split(":");
+
+  h = parseInt(h);
+  m = parseInt(m);
+
+  if (mod === "PM" && h !== 12) h += 12;
+  if (mod === "AM" && h === 12) h = 0;
+
+  return h * 60 + m;
+}
+</script>
+
+</body>
+</html>
