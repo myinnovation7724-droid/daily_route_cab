@@ -15,10 +15,7 @@ header {
   font-size:20px;
 }
 
-.tabs {
-  display:flex;
-  background:#fff;
-}
+.tabs { display:flex; background:#fff; }
 
 .tab {
   flex:1;
@@ -86,7 +83,6 @@ select {
   color:green;
 }
 
-/* OTP UI */
 .otp-box {
   display:flex;
   gap:5px;
@@ -130,12 +126,10 @@ select {
 
 <div class="container">
 
-<!-- SUMMARY -->
 <div id="summaryTab">
   <div id="summary"></div>
 </div>
 
-<!-- DETAILS -->
 <div id="detailsTab" style="display:none;">
 
   <div class="filters">
@@ -151,21 +145,32 @@ select {
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzwuSKz0spGY43JLamPZOsUZYwYH89lR6srjyWfZsmi2FFthkgPdfwApVVNVT4xrrXy/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzLvqkwYPnTwcokwouaLBnaaYM5BwpsshkkIt5vhJl71wOl-jtsz1HQXiKHRJ3C8Lhm/exec";
 
 let data = [];
-const today = new Date().toISOString().split("T")[0];
 
-/* LOAD DATA */
+/* IST DATE */
+function getTodayIST() {
+  const now = new Date();
+  const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  return ist.toISOString().split("T")[0];
+}
+
+const today = getTodayIST();
+
+/* LOAD */
 function loadData() {
   fetch(API_URL)
   .then(res => res.json())
   .then(json => {
 
-    // ✅ TODAY ONLY
     data = json.filter(d => {
-      const rowDate = new Date(d.Timestamp).toISOString().split("T")[0];
-      return rowDate === today;
+      const rowDate = new Date(d.Timestamp)
+        .toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+        .split(",")[0];
+
+      const formattedRowDate = new Date(rowDate).toISOString().split("T")[0];
+      return formattedRowDate === today;
     });
 
     populateFilters();
@@ -176,10 +181,10 @@ function loadData() {
 
 loadData();
 
-/* TAB SWITCH */
+/* TABS */
 function showTab(tabId, el) {
-  document.getElementById("summaryTab").style.display = "none";
-  document.getElementById("detailsTab").style.display = "none";
+  summaryTab.style.display = "none";
+  detailsTab.style.display = "none";
 
   document.getElementById(tabId).style.display = "block";
 
@@ -225,7 +230,6 @@ function renderSummaryTab() {
   summary.innerHTML = `
     <div class="summary-title">📊 Booking Details</div>
     ${renderSummaryCards(bookingMap)}
-
     <div class="summary-title">✅ Picked Persons</div>
     ${renderSummaryCards(pickedMap)}
   `;
@@ -256,7 +260,7 @@ function renderDetails() {
   renderList(filtered);
 }
 
-/* LIST WITH OTP */
+/* LIST */
 function renderList(data) {
 
   list.innerHTML = data.map((d, index) => `
@@ -269,33 +273,39 @@ function renderList(data) {
       <div class="row">Drop: ${d["Drop Location"]}</div>
       <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
 
-      <!-- OTP INPUT -->
-      <div class="otp-box" id="otp-${index}">
-        ${[0,1,2,3,4,5].map(i => `<input maxlength="1" oninput="moveNext(this, ${index}, ${i})">`).join('')}
-      </div>
+      ${d.Status === "Picked" ? `
+        <div class="msg" style="color:green;font-weight:bold;">✅ Picked Up</div>
+      ` : `
+        <div class="otp-box" id="otp-${index}">
+          ${[0,1,2,3,4,5].map(i => `
+            <input maxlength="1" inputmode="numeric"
+            oninput="handleInput(this, ${index}, ${i})">
+          `).join('')}
+        </div>
 
-      <button class="verify-btn" onclick="verifyOTP(${index})">Verify OTP</button>
-
-      <div class="msg" id="msg-${index}"></div>
+        <button class="verify-btn" onclick="verifyOTP(${index}, ${d.rowId})">Verify OTP</button>
+        <div class="msg" id="msg-${index}"></div>
+      `}
     </div>
   `).join('');
 }
 
-/* OTP INPUT AUTO MOVE */
-function moveNext(el, row, index) {
+/* OTP INPUT */
+function handleInput(el, row, index) {
+  el.value = el.value.replace(/[^0-9]/g, '');
   if (el.value && index < 5) {
-    const next = document.querySelectorAll(`#otp-${row} input`)[index+1];
-    if (next) next.focus();
+    document.querySelectorAll(`#otp-${row} input`)[index+1]?.focus();
   }
 }
 
-/* VERIFY OTP */
-function verifyOTP(index) {
+/* VERIFY */
+function verifyOTP(index, rowId) {
 
   const inputs = document.querySelectorAll(`#otp-${index} input`);
   const otp = Array.from(inputs).map(i => i.value).join('');
 
   const msg = document.getElementById(`msg-${index}`);
+  const otpBox = document.getElementById(`otp-${index}`);
 
   if (otp.length !== 6) {
     msg.innerHTML = "⚠️ Enter 6 digit OTP";
@@ -303,11 +313,12 @@ function verifyOTP(index) {
     return;
   }
 
-  fetch(API_URL + "?otp=" + otp)
+  fetch(API_URL + "?otp=" + otp + "&rowId=" + rowId)
   .then(res => res.json())
   .then(res => {
     if (res.success) {
-      msg.innerHTML = "✅ OTP Verified";
+      otpBox.style.display = "none";
+      msg.innerHTML = "✅ Picked Up";
       msg.style.color = "green";
     } else {
       msg.innerHTML = "❌ Invalid OTP";
