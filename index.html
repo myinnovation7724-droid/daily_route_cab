@@ -12,7 +12,7 @@ body {
   padding: 20px;
 }
 
-.container {		
+.container {
   max-width: 420px;
   margin: auto;
   background: #fff;
@@ -70,15 +70,15 @@ button {
 
     <!-- NAME -->
     <label>Enter your name</label>
-    <input type="text" name="entry.1455248696" required>
+    <input type="text" name="entry.1455248696" placeholder="" required>
 
     <!-- PHONE -->
     <label>Enter contact number</label>
-    <input type="tel" name="entry.468587822" required>
+    <input type="tel" name="entry.468587822" placeholder="" required>
 
     <!-- SHIFT -->
     <label>Select shift</label>
-    <select id="shift" name="entry.157653572" required onchange="filterCab(); loadPickup()">
+    <select id="shift" name="entry.157653572" required onchange="filterCab()">
       <option value="">-- Select Shift --</option>
       <option value="Morning">Morning</option>
       <option value="Evening">Evening</option>
@@ -92,12 +92,12 @@ button {
 
     <!-- PICKUP -->
     <label>Select pickup location</label>
-    <input list="pickupList" id="pickup" name="entry.770044040" required onchange="setETA(); filterDrop()">
+    <input list="pickupList" id="pickup" name="entry.770044040" placeholder="" required onchange="setETA()">
     <datalist id="pickupList"></datalist>
 
     <!-- DROP -->
     <label>Select drop location</label>
-    <input list="dropList" name="entry.1500323835" required>
+    <input list="dropList" name="entry.1500323835" placeholder="" required>
     <datalist id="dropList"></datalist>
 
     <!-- ETA -->
@@ -115,8 +115,7 @@ button {
 const API_URL = "https://script.google.com/macros/s/AKfycby4VVFAHangOe4n8vtayTguUJNdQomlHacpQH9XTsOZ05CxRr6PJscE1_oJt0s80cld/exec";
 
 let data = [];
-let upRoute = [];
-let downRoute = [];
+let locations = new Set();
 
 // Load data
 fetch(API_URL)
@@ -124,16 +123,26 @@ fetch(API_URL)
 .then(res => {
   data = res;
 
-  // FIX: removed locations error, added correct route logic
-  res.forEach(r => {
-    if (r.upRoute && !upRoute.includes(r.upRoute)) {
-      upRoute.push(r.upRoute);
-    }
-    if (r.downRoute && !downRoute.includes(r.downRoute)) {
-      downRoute.push(r.downRoute);
-    }
-  });
+  res.forEach(r => locations.add(r.pickup));
+
+  loadLocations();
 });
+
+// Load locations
+function loadLocations() {
+  const pick = document.getElementById("pickupList");
+  const drop = document.getElementById("dropList");
+
+  locations.forEach(loc => {
+    let o1 = document.createElement("option");
+    o1.value = loc;
+    pick.appendChild(o1);
+
+    let o2 = document.createElement("option");
+    o2.value = loc;
+    drop.appendChild(o2);
+  });
+}
 
 // Cab options
 const cabOptions = [
@@ -162,49 +171,6 @@ function filterCab() {
   });
 }
 
-// Load Pickup based on shift
-function loadPickup() {
-  const shift = document.getElementById("shift").value;
-  const pick = document.getElementById("pickupList");
-
-  pick.innerHTML = "";
-
-  let route = shift === "Morning" ? upRoute : downRoute;
-
-  route.forEach(loc => {
-    let opt = document.createElement("option");
-    opt.value = loc;
-    pick.appendChild(opt);
-  });
-}
-
-// Strict Drop Logic
-function filterDrop() {
-  const shift = document.getElementById("shift").value;
-  const pickup = document.getElementById("pickup").value;
-  const dropList = document.getElementById("dropList");
-
-  document.querySelector('[name="entry.1500323835"]').value = "";
-
-  dropList.innerHTML = "";
-
-  let route = shift === "Morning" ? upRoute : downRoute;
-
-  let index = route.indexOf(pickup);
-
-  if (index === -1) return;
-
-  for (let i = index + 1; i < route.length; i++) {
-    let opt = document.createElement("option");
-    opt.value = route[i];
-    dropList.appendChild(opt);
-  }
-
-  if (index === route.length - 1) {
-    alert("❌ No drop available from last stop");
-  }
-}
-
 // Set ETA
 function setETA() {
   const cab = document.getElementById("cab").value;
@@ -217,26 +183,22 @@ function setETA() {
   document.getElementById("eta").value =
     match ? match.eta : "Not Available";
 }
-
-// Submit (FIXED)
 function submitForm(e) {
-  e.preventDefault();
+  e.preventDefault(); // stop redirect
 
   const form = e.target;
+
+  // get ETA value
   const eta = document.getElementById("eta").value;
-  const drop = form.querySelector('[name="entry.1500323835"]').value;
 
-  if (!drop) {
-    alert("❌ Please select valid drop location");
-    return;
-  }
-
+  // send data to Google Form
   fetch(form.action, {
     method: "POST",
     body: new FormData(form),
     mode: "no-cors"
   });
 
+  // show success message
   document.querySelector(".container").innerHTML = `
     <h2 style="color:green;">✅ Booking Confirmed</h2>
     <p>Your cab is booked successfully.</p>
