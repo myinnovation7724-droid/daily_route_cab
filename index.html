@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cab Booking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .form-box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 0 10px #ccc;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="form-box">
+  <h2>Cab Booking</h2>
+
+  <form action="https://docs.google.com/forms/d/e/1FAIpQLScU0eto2h9yRiCDoE9HvWhWDe7STGnb7Nba2wDv1r-B04suIA/formResponse" method="POST" target="_blank">
+
+    <input type="text" name="entry.1455248696" placeholder="Your Name" required>
+
+    <input type="number" name="entry.468587822" placeholder="Contact Number" required>
+
+    <select name="entry.157653572" required>
+      <option value="">Select Shift</option>
+      <option>Morning</option>
+      <option>Evening</option>
+    </select>
+
+    <select name="entry.255326989" required>
+      <option value="">Select Cab Type</option>
+      <option>Morning 7:30 AM</option>
+      <option>Morning 8:10 AM</option>
+      <option>Evening 5:20 PM</option>
+      <option>Evening 6:20 PM</option>
+    </select>
+
+    <input list="pickup" name="entry.770044040" placeholder="Pickup Location" required>
+    <datalist id="pickup">
+      <option value="Location A">
+      <option value="Location B">
+    </datalist>
+
+    <input list="drop" name="entry.1500323835" placeholder="Drop Location" required>
+    <datalist id="drop">
+      <option value="Location A">
+      <option value="Location B">
+    </datalist>
+
+    <button type="submit">Book Cab</button>
+
+  </form>
+</div>
+
+</body>
+</html>
