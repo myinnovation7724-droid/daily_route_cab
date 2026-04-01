@@ -139,10 +139,11 @@ function renderList(data) {
   list.innerHTML = data.map(d => `
   <div class="card">
     <div class="name">${d["Your Name"]}</div>
-    <div class="row">📞 Contact: ${d["Contact Number"]}</div>
+    <div class="row">Contact: ${d["Contact Number"]}</div>
     <div class="row">Shift: ${d.Shift}</div>
     <div class="row">Cab: ${d["Cab Type"]}</div>
     <div class="row">Pickup: ${d["Pickup Location"]}</div>
+    <div class="eta">Drop: ${d["Drop Location"]}</div>
     <div class="eta">ETA: ${d["Estimated Arrival Time"]}</div>
   </div>
 `).join('');
