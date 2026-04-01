@@ -1,151 +1,40 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Cab Booking</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- QR -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<style>
-body {
-  font-family: Arial;
-  background: #f4f6f9;
-  margin: 0;
-  padding: 20px;
-}
-
-.container {
-  max-width: 420px;
-  margin: auto;
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-label {
-  display: block;
-  margin-top: 15px;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-input, select {
-  width: 100%;
-  padding: 10px;
-  margin-top: 6px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
-
-button {
-  width: 100%;
-  margin-top: 20px;
-  padding: 12px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-}
-</style>
-
-</head>
-
-<body>
-
-<div class="container">
-  <h2>Cab Booking Form</h2>
-
-  <form onsubmit="submitForm(event)">
-
-    <!-- NAME -->
-    <label>Enter your name</label>
-    <input type="text" id="name" required>
-
-    <!-- PHONE -->
-    <label>Enter contact number</label>
-    <input type="tel" id="phone" required>
-
-    <!-- SHIFT -->
-    <label>Select shift</label>
-    <select id="shift" required onchange="filterCab()">
-      <option value="">-- Select Shift --</option>
-      <option value="Morning">Morning</option>
-      <option value="Evening">Evening</option>
-    </select>
-
-    <!-- CAB -->
-    <label>Select cab timing</label>
-    <select id="cab" required onchange="setETA()">
-      <option value="">-- Select Cab --</option>
-    </select>
-
-    <!-- PICKUP -->
-    <label>Select pickup location</label>
-    <input list="pickupList" id="pickup" required onchange="setETA()">
-    <datalist id="pickupList"></datalist>
-
-    <!-- DROP -->
-    <label>Select drop location</label>
-    <input list="dropList" id="drop" required>
-    <datalist id="dropList"></datalist>
-
-    <!-- ETA -->
-    <label>Estimated arrival time</label>
-    <input type="text" id="eta" readonly placeholder="Auto-filled">
-
-    <button type="submit">Submit Booking</button>
-
-  </form>
-</div>
-
 <script>
 
-// ✅ OLD API (UNCHANGED - DROPDOWN + ETA)
-const MASTER_API = "https://script.google.com/macros/s/AKfycbyhxPWmJ_LhHkrcCcMwa2zXFA_fce-YXHk-5yqHPlmtLCbRcpn6eMMJqTcXM5flBjs/exec";
+// 🔗 OLD API (NO CHANGE)
+const API_URL = "https://script.google.com/macros/s/AKfycbx7t0pymTVw9snJxVQ3WmuukAVqpNoUHUHfsToKJveNCMLTeateWtCPDE3QCEGYalOi/exec";
 
-// ✅ NEW API (OTP + QR)
-const BOOK_API = "https://script.google.com/macros/s/AKfycbwH4i9z74h7nTpPi41jvS7aRbGr4D5yOQFZyL3Fui4A-Lz8D82xxQHt_0eOBdS-1Xhe/exec";
+// 🔴 NEW QR API (PUT YOUR NEW SCRIPT URL HERE)
+const QR_API = "https://script.google.com/macros/s/AKfycbx7t0pymTVw9snJxVQ3WmuukAVqpNoUHUHfsToKJveNCMLTeateWtCPDE3QCEGYalOi/exec";
 
 let data = [];
 let locations = new Set();
 
-// 🔹 LOAD MASTER DATA (UNCHANGED)
-fetch(MASTER_API)
+// LOAD DATA
+fetch(API_URL)
 .then(res => res.json())
 .then(res => {
   data = res;
-
-  res.forEach(r => {
-    if (r.pickup) locations.add(r.pickup);
-  });
-
+  res.forEach(r => locations.add(r.pickup));
   loadLocations();
 });
 
-// 🔹 LOAD LOCATIONS
+// LOAD LOCATIONS
 function loadLocations() {
   const pick = document.getElementById("pickupList");
   const drop = document.getElementById("dropList");
 
-  pick.innerHTML = "";
-  drop.innerHTML = "";
-
   locations.forEach(loc => {
-    pick.innerHTML += `<option value="${loc}">`;
-    drop.innerHTML += `<option value="${loc}">`;
+    let o1 = document.createElement("option");
+    o1.value = loc;
+    pick.appendChild(o1);
+
+    let o2 = document.createElement("option");
+    o2.value = loc;
+    drop.appendChild(o2);
   });
 }
 
-// 🔹 CAB OPTIONS
+// CAB OPTIONS
 const cabOptions = [
   "Morning 7:30 AM",
   "Morning 8:10 AM",
@@ -155,7 +44,7 @@ const cabOptions = [
   "Evening 6:20 PM"
 ];
 
-// 🔹 FILTER CAB
+// FILTER CAB
 function filterCab() {
   const shift = document.getElementById("shift").value;
   const cab = document.getElementById("cab");
@@ -164,12 +53,15 @@ function filterCab() {
 
   cabOptions.forEach(c => {
     if (c.startsWith(shift)) {
-      cab.innerHTML += `<option value="${c}">${c}</option>`;
+      let opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      cab.appendChild(opt);
     }
   });
 }
 
-// 🔹 SET ETA
+// SET ETA
 function setETA() {
   const cab = document.getElementById("cab").value;
   const pickup = document.getElementById("pickup").value;
@@ -182,50 +74,77 @@ function setETA() {
     match ? match.eta : "Not Available";
 }
 
-// 🔥 UPDATED SUBMIT (ONLY CHANGE)
+// SUBMIT FORM
 function submitForm(e) {
   e.preventDefault();
 
-  const payload = {
-    name: name.value,
-    phone: phone.value,
-    shift: shift.value,
-    cab: cab.value,
-    pickup: pickup.value,
-    drop: drop.value
-  };
+  const form = e.target;
 
-  fetch(BOOK_API, {
+  const name = form.querySelector('[name="entry.1455248696"]').value;
+  const phone = form.querySelector('[name="entry.468587822"]').value;
+  const shift = form.querySelector('[name="entry.157653572"]').value;
+  const cab = form.querySelector('[name="entry.255326989"]').value;
+  const pickup = form.querySelector('[name="entry.770044040"]').value;
+  const drop = form.querySelector('[name="entry.1500323835"]').value;
+
+  const eta = document.getElementById("eta").value;
+
+  ////////////////////////////////////////////
+  // ✅ 1. GOOGLE FORM SUBMIT (UNCHANGED)
+  ////////////////////////////////////////////
+  fetch(form.action, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: new FormData(form),
+    mode: "no-cors"
+  });
+
+  ////////////////////////////////////////////
+  // ✅ 2. QR API CALL
+  ////////////////////////////////////////////
+  fetch(QR_API, {
+    method: "POST",
+    body: JSON.stringify({
+      name, phone, shift, cab, pickup, drop
+    }),
     headers: { "Content-Type": "application/json" }
   })
   .then(res => res.json())
   .then(res => {
 
+    if (res.status !== "success") {
+      alert("QR failed");
+      return;
+    }
+
+    ////////////////////////////////////////////
+    // ✅ SUCCESS UI
+    ////////////////////////////////////////////
     document.querySelector(".container").innerHTML = `
       <h2 style="color:green;">✅ Booking Confirmed</h2>
-      <p><b>Estimated Arrival Time:</b> ${res.eta}</p>
-      <p><b>Your OTP:</b> ${res.otp}</p>
-
-      <div id="qrcode" style="margin:20px;"></div>
-
+      <p><b>ETA:</b> ${eta}</p>
+      <p><b>OTP:</b> ${res.otp}</p>
+      <div id="qr"></div>
+      <br>
       <button onclick="location.reload()">Book Again</button>
     `;
 
-    new QRCode(document.getElementById("qrcode"), {
-      text: res.qr,
-      width: 180,
-      height: 180
-    });
+    // LOAD QR LIBRARY
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+    script.onload = () => {
+      new QRCode(document.getElementById("qr"), {
+        text: res.qr,
+        width: 200,
+        height: 200
+      });
+    };
+    document.body.appendChild(script);
 
   })
-  .catch(() => {
+  .catch(err => {
+    console.error(err);
     alert("Error submitting booking");
   });
 }
 
 </script>
-
-</body>
-</html>
