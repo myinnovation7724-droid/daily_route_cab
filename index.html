@@ -70,15 +70,15 @@ button {
 
     <!-- NAME -->
     <label>Enter your name</label>
-    <input type="text" name="entry.1455248696" placeholder="" required>
+    <input type="text" name="entry.1455248696" required>
 
     <!-- PHONE -->
     <label>Enter contact number</label>
-    <input type="tel" name="entry.468587822" placeholder="" required>
+    <input type="tel" name="entry.468587822" required>
 
     <!-- SHIFT -->
     <label>Select shift</label>
-    <select id="shift" name="entry.157653572" required onchange="filterCab()">
+    <select id="shift" name="entry.157653572" required onchange="filterCab(); loadPickup()">
       <option value="">-- Select Shift --</option>
       <option value="Morning">Morning</option>
       <option value="Evening">Evening</option>
@@ -97,7 +97,7 @@ button {
 
     <!-- DROP -->
     <label>Select drop location</label>
-    <input list="dropList" name="entry.1500323835" placeholder="" required>
+    <input list="dropList" name="entry.1500323835" required>
     <datalist id="dropList"></datalist>
 
     <!-- ETA -->
@@ -124,26 +124,16 @@ fetch(API_URL)
 .then(res => {
   data = res;
 
-  res.forEach(r => locations.add(r.pickup));
-
-  loadLocations();
-});
-
-// Load Pickup based on shift
-function loadPickup() {
-  const shift = document.getElementById("shift").value;
-  const pick = document.getElementById("pickupList");
-
-  pick.innerHTML = "";
-
-  let route = shift === "Morning" ? upRoute : downRoute;
-
-  route.forEach(loc => {
-    let opt = document.createElement("option");
-    opt.value = loc;
-    pick.appendChild(opt);
+  // FIX: removed locations error, added correct route logic
+  res.forEach(r => {
+    if (r.upRoute && !upRoute.includes(r.upRoute)) {
+      upRoute.push(r.upRoute);
+    }
+    if (r.downRoute && !downRoute.includes(r.downRoute)) {
+      downRoute.push(r.downRoute);
+    }
   });
-}
+});
 
 // Cab options
 const cabOptions = [
@@ -188,6 +178,33 @@ function loadPickup() {
   });
 }
 
+// Strict Drop Logic
+function filterDrop() {
+  const shift = document.getElementById("shift").value;
+  const pickup = document.getElementById("pickup").value;
+  const dropList = document.getElementById("dropList");
+
+  document.querySelector('[name="entry.1500323835"]').value = "";
+
+  dropList.innerHTML = "";
+
+  let route = shift === "Morning" ? upRoute : downRoute;
+
+  let index = route.indexOf(pickup);
+
+  if (index === -1) return;
+
+  for (let i = index + 1; i < route.length; i++) {
+    let opt = document.createElement("option");
+    opt.value = route[i];
+    dropList.appendChild(opt);
+  }
+
+  if (index === route.length - 1) {
+    alert("❌ No drop available from last stop");
+  }
+}
+
 // Set ETA
 function setETA() {
   const cab = document.getElementById("cab").value;
@@ -201,13 +218,11 @@ function setETA() {
     match ? match.eta : "Not Available";
 }
 
-// Submit
+// Submit (FIXED)
 function submitForm(e) {
-  e.preventDefault(); 
+  e.preventDefault();
 
-// stop redirect
   const form = e.target;
-
   const eta = document.getElementById("eta").value;
   const drop = form.querySelector('[name="entry.1500323835"]').value;
 
@@ -216,17 +231,12 @@ function submitForm(e) {
     return;
   }
 
-  // get ETA value
-  const eta = document.getElementById("eta").value;
-}
-  // send data to Google Form
   fetch(form.action, {
     method: "POST",
     body: new FormData(form),
     mode: "no-cors"
   });
 
-  // show success message
   document.querySelector(".container").innerHTML = `
     <h2 style="color:green;">✅ Booking Confirmed</h2>
     <p>Your cab is booked successfully.</p>
