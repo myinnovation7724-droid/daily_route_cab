@@ -15,16 +15,10 @@ header {
   font-size:20px;
 }
 
-.status {
-  margin-top:6px;
-  font-weight:bold;
-}
+.status { margin-top:6px; font-weight:bold; }
 
 /* Tabs */
-.tabs {
-  display:flex;
-  background:#fff;
-}
+.tabs { display:flex; background:#fff; }
 
 .tab {
   flex:1;
@@ -66,11 +60,7 @@ header {
 }
 
 /* Filters */
-.filters {
-  display:flex;
-  gap:8px;
-  margin-bottom:10px;
-}
+.filters { display:flex; gap:8px; margin-bottom:10px; }
 
 select {
   flex:1;
@@ -79,10 +69,7 @@ select {
 }
 
 /* Summary */
-.summary-title {
-  font-weight:bold;
-  margin:12px 0 6px;
-}
+.summary-title { font-weight:bold; margin:12px 0 6px; }
 
 .summary-card {
   background:#e3f2fd;
@@ -138,12 +125,12 @@ select {
   <input type="date" id="dateFilter">
 </div>
 
-<!-- ================= SUMMARY TAB ================= -->
+<!-- SUMMARY TAB -->
 <div id="summaryTab">
   <div id="summary"></div>
 </div>
 
-<!-- ================= DETAILS TAB ================= -->
+<!-- DETAILS TAB -->
 <div id="detailsTab" style="display:none;">
 
   <div class="filters">
@@ -163,6 +150,14 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx_vjKoYYDsXLRoG0uuFrYI
 
 let data = [];
 
+/* ✅ FIX: define elements */
+const dateFilter = document.getElementById("dateFilter");
+const shiftFilter = document.getElementById("shiftFilter");
+const cabFilter = document.getElementById("cabFilter");
+const pickupFilter = document.getElementById("pickupFilter");
+const summary = document.getElementById("summary");
+const list = document.getElementById("list");
+
 /* LOAD DATA */
 function loadData() {
   fetch(API_URL)
@@ -176,9 +171,9 @@ function loadData() {
 
     renderSummaryTab();
     renderDetails();
-  });
+  })
+  .catch(err => console.error(err));
 }
-
 
 /* TAB SWITCH */
 function showTab(tabId, el) {
@@ -231,13 +226,14 @@ function renderSummaryTab() {
   filtered.forEach(d => {
     const cab = d["Cab Type"];
 
-    // Booking count
     bookingMap[cab] = (bookingMap[cab] || 0) + 1;
 
-    // Picked (Status = Pickup)
-if (d.Status && d.Status.toLowerCase().includes("pick")) {
-  pickedMap[cab] = (pickedMap[cab] || 0) + 1;
-}
+    if (d.Status && d.Status.toLowerCase().includes("pick")) {
+      pickedMap[cab] = (pickedMap[cab] || 0) + 1;
+    }
+  });
+
+  /* ✅ FIX: moved outside loop */
   summary.innerHTML = `
     <div class="summary-title">📊 Booking Details</div>
     ${renderSummaryCards(bookingMap)}
@@ -263,15 +259,10 @@ function getStatusUI(status) {
 
   status = status.toLowerCase();
 
-  if (status.includes("pick")) {
-    return "✅ Picked Up";
-  } else if (status.includes("book")) {
-    return "📌 Booked";
-  } else {
-    return "⏳ Pending";
-  }
+  if (status.includes("pick")) return "✅ Picked Up";
+  else if (status.includes("book")) return "📌 Booked";
+  else return "⏳ Pending";
 }
-
 
 function renderDetails() {
 
@@ -281,7 +272,6 @@ function renderDetails() {
   const selectedDate = dateFilter.value;
 
   const filtered = data.filter(d => {
-
     const rowDate = new Date(d.Timestamp).toLocaleDateString('en-CA');
     return (
       (!shift || d.Shift === shift) &&
@@ -330,6 +320,7 @@ function parseTime(t) {
 
   return h * 60 + m;
 }
+
 loadData();
 </script>
 
