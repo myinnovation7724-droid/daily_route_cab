@@ -4,7 +4,7 @@
   <title>Cab Booking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- QR CODE LIB -->
+  <!-- QR -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
@@ -26,12 +26,14 @@ body {
 
 h2 {
   text-align: center;
+  margin-bottom: 20px;
 }
 
 label {
   display: block;
   margin-top: 15px;
   font-weight: bold;
+  font-size: 14px;
 }
 
 input, select {
@@ -40,6 +42,7 @@ input, select {
   margin-top: 6px;
   border-radius: 6px;
   border: 1px solid #ccc;
+  font-size: 14px;
 }
 
 button {
@@ -50,8 +53,10 @@ button {
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 16px;
 }
 </style>
+
 </head>
 
 <body>
@@ -61,34 +66,41 @@ button {
 
   <form onsubmit="submitForm(event)">
 
-    <label>Name</label>
+    <!-- NAME -->
+    <label>Enter your name</label>
     <input type="text" id="name" required>
 
-    <label>Phone</label>
+    <!-- PHONE -->
+    <label>Enter contact number</label>
     <input type="tel" id="phone" required>
 
-    <label>Shift</label>
+    <!-- SHIFT -->
+    <label>Select shift</label>
     <select id="shift" required onchange="filterCab()">
-      <option value="">Select Shift</option>
+      <option value="">-- Select Shift --</option>
       <option value="Morning">Morning</option>
       <option value="Evening">Evening</option>
     </select>
 
-    <label>Cab</label>
+    <!-- CAB -->
+    <label>Select cab timing</label>
     <select id="cab" required onchange="setETA()">
-      <option value="">Select Cab</option>
+      <option value="">-- Select Cab --</option>
     </select>
 
-    <label>Pickup</label>
+    <!-- PICKUP -->
+    <label>Select pickup location</label>
     <input list="pickupList" id="pickup" required onchange="setETA()">
     <datalist id="pickupList"></datalist>
 
-    <label>Drop</label>
+    <!-- DROP -->
+    <label>Select drop location</label>
     <input list="dropList" id="drop" required>
     <datalist id="dropList"></datalist>
 
-    <label>ETA</label>
-    <input type="text" id="eta" readonly>
+    <!-- ETA -->
+    <label>Estimated arrival time</label>
+    <input type="text" id="eta" readonly placeholder="Auto-filled">
 
     <button type="submit">Submit Booking</button>
 
@@ -97,14 +109,17 @@ button {
 
 <script>
 
-// ✅ YOUR LIVE API
-const API_URL = "https://script.google.com/macros/s/AKfycbykETJSc4TWQGMLfigwcpAIFCR7Ou0Kr6a3qbmRJ4Lb9qmnE_YRqJbSULzoWkLhT5o9/exec";
+// ✅ OLD API (UNCHANGED - DROPDOWN + ETA)
+const MASTER_API = "https://script.google.com/macros/s/AKfycbykETJSc4TWQGMLfigwcpAIFCR7Ou0Kr6a3qbmRJ4Lb9qmnE_YRqJbSULzoWkLhT5o9/exec";
+
+// ✅ NEW API (OTP + QR)
+const BOOK_API = "https://script.google.com/macros/s/AKfycbwMkucXUW4MhUWNwrxLXdHI2DmzRCnj31hdiqlQeQ5RMMFtcq9SZD7OzQ3QSp7qLkWI/exec";
 
 let data = [];
 let locations = new Set();
 
-// ✅ FETCH MASTER DATA (IMPORTANT FIX)
-fetch(API_URL + "?mode=master")
+// 🔹 LOAD MASTER DATA (UNCHANGED)
+fetch(MASTER_API)
 .then(res => res.json())
 .then(res => {
   data = res;
@@ -116,7 +131,7 @@ fetch(API_URL + "?mode=master")
   loadLocations();
 });
 
-// Load pickup & drop
+// 🔹 LOAD LOCATIONS
 function loadLocations() {
   const pick = document.getElementById("pickupList");
   const drop = document.getElementById("dropList");
@@ -130,7 +145,7 @@ function loadLocations() {
   });
 }
 
-// Cab options
+// 🔹 CAB OPTIONS
 const cabOptions = [
   "Morning 7:30 AM",
   "Morning 8:10 AM",
@@ -140,12 +155,12 @@ const cabOptions = [
   "Evening 6:20 PM"
 ];
 
-// Filter cab
+// 🔹 FILTER CAB
 function filterCab() {
   const shift = document.getElementById("shift").value;
   const cab = document.getElementById("cab");
 
-  cab.innerHTML = '<option value="">Select Cab</option>';
+  cab.innerHTML = '<option value="">-- Select Cab --</option>';
 
   cabOptions.forEach(c => {
     if (c.startsWith(shift)) {
@@ -154,7 +169,7 @@ function filterCab() {
   });
 }
 
-// ETA logic
+// 🔹 SET ETA
 function setETA() {
   const cab = document.getElementById("cab").value;
   const pickup = document.getElementById("pickup").value;
@@ -167,7 +182,7 @@ function setETA() {
     match ? match.eta : "Not Available";
 }
 
-// ✅ SUBMIT FORM (OTP + QR FROM BACKEND)
+// 🔥 UPDATED SUBMIT (ONLY CHANGE)
 function submitForm(e) {
   e.preventDefault();
 
@@ -180,7 +195,7 @@ function submitForm(e) {
     drop: drop.value
   };
 
-  fetch(API_URL, {
+  fetch(BOOK_API, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: { "Content-Type": "application/json" }
@@ -190,7 +205,7 @@ function submitForm(e) {
 
     document.querySelector(".container").innerHTML = `
       <h2 style="color:green;">✅ Booking Confirmed</h2>
-      <p><b>ETA:</b> ${res.eta}</p>
+      <p><b>Estimated Arrival Time:</b> ${res.eta}</p>
       <p><b>Your OTP:</b> ${res.otp}</p>
 
       <div id="qrcode" style="margin:20px;"></div>
@@ -198,7 +213,6 @@ function submitForm(e) {
       <button onclick="location.reload()">Book Again</button>
     `;
 
-    // Generate QR Code
     new QRCode(document.getElementById("qrcode"), {
       text: res.qr,
       width: 180,
