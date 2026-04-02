@@ -163,21 +163,13 @@ function loadData() {
   .then(res => res.json())
   .then(json => {
 
-    console.log("API Data:", json);
+    const today = new Date().toLocaleDateString("en-US");
 
-    const today = new Date().toLocaleDateString("en-US"); // 4/2/2026
-
-    // ✅ FIXED FILTER (using Date column)
     data = json.filter(d => d.Date && d.Date.trim() === today);
-
-    console.log("Filtered Data:", data);
 
     populateFilters();
     renderSummaryTab();
     renderDetails();
-  })
-  .catch(err => {
-    console.error("Error:", err);
   });
 }
 
@@ -252,18 +244,25 @@ function renderSummaryCards(map) {
   `).join('');
 }
 
-/* DETAILS */
+/* DETAILS WITH SORTING */
 function renderDetails() {
 
   const shift = shiftFilter.value;
   const cab = cabFilter.value;
   const pickup = pickupFilter.value;
 
-  const filtered = data.filter(d => (
+  let filtered = data.filter(d => (
     (!shift || d.Shift === shift) &&
     (!cab || d["Cab Type"] === cab) &&
     (!pickup || d["Pickup Location"] === pickup)
   ));
+
+  // ✅ SORT BY ETA (EARLIEST FIRST)
+  filtered.sort((a, b) => {
+    const timeA = new Date("1970-01-01 " + a["Estimated Arrival Time"]);
+    const timeB = new Date("1970-01-01 " + b["Estimated Arrival Time"]);
+    return timeA - timeB;
+  });
 
   renderList(filtered);
 }
