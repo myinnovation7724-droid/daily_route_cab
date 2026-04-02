@@ -100,22 +100,25 @@ select {
 
 .verify-btn {
   margin-top: 10px;
-  padding: 10px 12px;   /* increased height */
+  padding: 10px 12px;
   width: 100%;
   background: #1976d2;
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 14px;      /* slightly bigger text */
-  font-weight: 500;
+  font-size: 14px;
   cursor: pointer;
 }
-.verify-btn:active {
-  transform: scale(0.98);
-}
+
 .msg {
   font-size:13px;
   margin-top:5px;
+}
+
+.no-data {
+  text-align:center;
+  margin-top:30px;
+  color:#777;
 }
 </style>
 </head>
@@ -154,33 +157,27 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzLvqkwYPnTwcokwouaLBna
 
 let data = [];
 
-/* IST DATE */
-function getTodayIST() {
-  const now = new Date();
-  const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-  return ist.toISOString().split("T")[0];
-}
-
-const today = getTodayIST();
-
-/* LOAD */
+/* LOAD DATA */
 function loadData() {
   fetch(API_URL)
   .then(res => res.json())
   .then(json => {
 
-    data = json.filter(d => {
-      const rowDate = new Date(d.Timestamp)
-        .toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-        .split(",")[0];
+    console.log("API Data:", json);
 
-      const formattedRowDate = new Date(rowDate).toISOString().split("T")[0];
-      return formattedRowDate === today;
-    });
+    const today = new Date().toLocaleDateString("en-US"); // 4/2/2026
+
+    // ✅ FIXED FILTER (using Date column)
+    data = json.filter(d => d.Date && d.Date.trim() === today);
+
+    console.log("Filtered Data:", data);
 
     populateFilters();
     renderSummaryTab();
     renderDetails();
+  })
+  .catch(err => {
+    console.error("Error:", err);
   });
 }
 
@@ -199,6 +196,7 @@ function showTab(tabId, el) {
 
 /* FILTERS */
 function populateFilters() {
+
   shiftFilter.innerHTML = '<option value="">All Shifts</option>';
   cabFilter.innerHTML = '<option value="">All Cab Types</option>';
   pickupFilter.innerHTML = '<option value="">All Pickups</option>';
@@ -218,6 +216,11 @@ pickupFilter.onchange = renderDetails;
 
 /* SUMMARY */
 function renderSummaryTab() {
+
+  if (data.length === 0) {
+    summary.innerHTML = `<div class="no-data">No data for today</div>`;
+    return;
+  }
 
   const bookingMap = {};
   const pickedMap = {};
@@ -266,9 +269,14 @@ function renderDetails() {
 }
 
 /* LIST */
-function renderList(data) {
+function renderList(dataArr) {
 
-  list.innerHTML = data.map((d, index) => `
+  if (dataArr.length === 0) {
+    list.innerHTML = `<div class="no-data">No passengers found</div>`;
+    return;
+  }
+
+  list.innerHTML = dataArr.map((d, index) => `
     <div class="card">
       <div class="name">${d["Your Name"]}</div>
       <div class="row">Contact: ${d["Contact Number"]}</div>
